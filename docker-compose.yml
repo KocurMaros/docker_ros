@@ -27,6 +27,13 @@ services:
       # - ./workspace:/root/workspace  # Mount workspace
     environment:
       - ROS_DOMAIN_ID=0
+      - ROS_DOMAIN_ID=0
+      - SDL_AUDIODRIVER=dummy
+      - PULSE_SERVER=
+      - ALSA_PCM_CARD=0
+      - ALSA_CARD=0
+      - AUDIODEV=null
+      - AUDIODRIVER=dummy
     tty: true
 
 networks:

@@ -10,3 +10,11 @@ You dont have to use sudo if opened as sudo or your user is added to group
 Make sure all containers are turned off 
 
     docker compose down 
+
+# RUN ROS CONTAINER WITH GUI 
+docker run -it --rm \
+    --env="DISPLAY=$DISPLAY" \
+    --env="QT_X11_NO_MITSHM=1" \
+    --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
+    --volume="$(pwd):/root/workspace" \
+    ros2_humble bash
