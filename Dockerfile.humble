@@ -1,0 +1,88 @@
+# Use Ubuntu 22.04 as the base image
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies (as root, before switching users)
+RUN apt update && apt install -y \
+    curl \
+    gnupg2 \
+    lsb-release \
+    software-properties-common \
+    build-essential \
+    python3-pip \
+    git \
+    cmake \
+    ninja-build \
+    protobuf-compiler \
+    libgoogle-glog-dev \
+    libgtest-dev \
+    libboost-all-dev \
+    libeigen3-dev \
+    gazebo \
+    x11-apps \
+    sudo \
+    python3-venv \
+    python3-dev \
+    gdb \
+    screen \
+    rsync \
+    python3-numpy \
+    python3-pandas \
+    python3-matplotlib \
+    python3-yaml \
+    python3-pyqt5 \
+    python3-pyqtgraph
+
+# Install missing dependencies via pip
+RUN pip3 install pyulog
+
+# Create a non-root user for ArduPilot
+RUN useradd -m -s /bin/bash ardupilot_user && \
+    echo "ardupilot_user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Copy the install script before switching to the user
+RUN pip3 install empy
+RUN pip3 install pexpect
+RUN pip3 install future
+
+COPY install_ardupilot.sh /home/ardupilot_user/install_ardupilot.sh
+COPY ardupilot /home/ardupilot_user/ardupilot
+# Change file permissions as root (before switching users)
+RUN chmod +x /home/ardupilot_user/install_ardupilot.sh
+
+
+RUN apt install -y dos2unix
+# Switch to the non-root user
+
+# Convert Windows-style files to UNIX format
+RUN dos2unix /home/ardupilot_user/ardupilot/Tools/completion/completion.bash && \
+dos2unix /home/ardupilot_user/ardupilot/Tools/completion/bash/_waf && \
+dos2unix /home/ardupilot_user/ardupilot/Tools/completion/bash/_sim_vehicle && \
+dos2unix /home/ardupilot_user/ardupilot/Tools/completion/bash/_ap_bin && \
+dos2unix /home/ardupilot_user/ardupilot/Tools/completion/bash/_ap_autotest
+
+USER ardupilot_user
+WORKDIR /home/ardupilot_user
+# Run the install script inside the container
+RUN /home/ardupilot_user/install_ardupilot.sh
+
+# Switch back to root for MAVROS installation
+USER root
+# Ensure ROS2 Humble repository is correctly set up
+RUN apt update && apt install -y curl && \
+    curl -sSL 'http://packages.ros.org/ros.key' | sudo apt-key add - && \
+    echo "deb http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/ros2.list && \
+    apt update
+# Install MAVROS
+RUN apt install -y ros-humble-mavros && \
+    wget https://raw.githubusercontent.com/mavlink/mavros/ros2/mavros/scripts/install_geographiclib_datasets.sh -O /home/ardupilot_user/install_geographiclib_datasets.sh && \
+    chmod +x /home/ardupilot_user/install_geographiclib_datasets.sh && \
+    /home/ardupilot_user/install_geographiclib_datasets.sh
+
+# Set environment variables for Gazebo
+ENV DISPLAY=:0
+ENV QT_X11_NO_MITSHM=1
+ENV GAZEBO_MODEL_PATH=/usr/share/gazebo/models
+
+CMD ["bash"]

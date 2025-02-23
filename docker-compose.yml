@@ -1,0 +1,34 @@
+version: '3.9'
+
+services:
+  ros1_noetic:
+    build:
+      context: .
+      dockerfile: Dockerfile.noetic
+    container_name: ros1_noetic
+    networks:
+      - ros_network
+    volumes:
+      - .:/root/workspace  # Mount workspace
+      # - ./workspace:/root/workspace  # Mount workspace
+    environment:
+      - ROS_MASTER_URI=http://ros1_noetic:11311
+    tty: true
+
+  ros2_humble:
+    build:
+      context: .
+      dockerfile: Dockerfile.humble
+    container_name: ros2_humble
+    networks:
+      - ros_network
+    volumes:
+      - .:/root/workspace  # Mount workspace
+      # - ./workspace:/root/workspace  # Mount workspace
+    environment:
+      - ROS_DOMAIN_ID=0
+    tty: true
+
+networks:
+  ros_network:
+    driver: bridge
